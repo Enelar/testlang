@@ -82,6 +82,41 @@ function TryFunc($line)
 
 function TryMath($line)
 {
+  $ReturnMatchedBlock = function ($match) use ($line)
+  {
+    $stack = [$match[1], $match[3]];
+
+    foreach ($stack as &$frame)
+    {
+      $test = parse_block($frame);
+      if (is_null($test))
+        continue;
+
+      if ($test['type'] == 'math')
+        throw new Exception("For sake of simplisity only one math operation per line is allowed {{$frame}} in {{$line}}");
+
+      $frame = $test;
+    }
+
+    return
+    [
+      'op' => $match[2],
+      'blocks' => $stack,
+    ];
+  };
+
+  $matched = preg_match('/(.*)\s+([\^])\s+(.*)/', $line, $match);
+  if ($matched)
+    return $ReturnMatchedBlock($match);
+
+  $matched = preg_match('/(.*)\s+([\*\/])\s+(.*)/', $line, $match);
+  if ($matched)
+    return $ReturnMatchedBlock($match);
+
+  $matched = preg_match('/(.*)\s+([\+\-])\s+(.*)/', $line, $match);
+  if ($matched)
+    return $ReturnMatchedBlock($match);
+
   return null;
 }
 
@@ -119,13 +154,11 @@ function TryValue($line)
 function TryName($line)
 {
   $matched = preg_match('/([\w\d_]+)/', $line, $match);
-  if ($matched)
-  {
-    if ($match[1] != $line)
-      throw new Exception("Tried match name, matched {{$match[1]}} in {{$line}}. (Should be equal)");
 
-    return $match[1];
-  }
+  if (!$matched)
+    return null;
+  if ($match[1] != $line)
+    throw new Exception("Tried match name, matched {{$match[1]}} in {{$line}}. (Should be equal)");
 
-  return null;
+  return $match[1];
 }
