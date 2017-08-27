@@ -77,7 +77,28 @@ function TryAssign($line)
 
 function TryFunc($line)
 {
-  return null;
+  var_dump($line);
+  $matched = preg_match('/([\w\d_]+)\((.*)\)/', $line, $match);
+  if (!$matched)
+    return null;
+
+  $name = parse_block($match[1]);
+  if ($name['type'] != 'name')
+    throw new Exception("Tried match function call, found {{$match[1]}} instead of name {{$line}}");
+
+  $params = explode(',', $match[2]);
+
+  foreach ($params as &$p)
+  {
+    $p = trim($p);
+    $p = parse_block($p);
+  }
+
+  return
+  [
+    'func' => $match[1],
+    'params' => $params,
+  ];
 }
 
 function TryMath($line)
@@ -105,15 +126,15 @@ function TryMath($line)
     ];
   };
 
-  $matched = preg_match('/(.*)\s+([\^])\s+(.*)/', $line, $match);
+  $matched = preg_match('/\s*(.+?)\s+([\^])\s+(.+?)\s*/', $line, $match);
   if ($matched)
     return $ReturnMatchedBlock($match);
 
-  $matched = preg_match('/(.*)\s+([\*\/])\s+(.*)/', $line, $match);
+  $matched = preg_match('/\s*(.+?)\s+([\*\/])\s+(.+?)\s*/', $line, $match);
   if ($matched)
     return $ReturnMatchedBlock($match);
 
-  $matched = preg_match('/(.*)\s+([\+\-])\s+(.*)/', $line, $match);
+  $matched = preg_match('/\s*(.+?)\s+([\+\-])\s+(.+?)\\s*/', $line, $match);
   if ($matched)
     return $ReturnMatchedBlock($match);
 
